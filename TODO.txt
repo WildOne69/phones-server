@@ -1,0 +1,47 @@
+--------------------------------------------------------------------------------
+Vista:
+
+1.  En la vista, agregar un campo para el password (soporte2015).
+2.  Validar los datos capturados, formato del nombre (max 12, solo letras, sin
+espacios), longitud y caracteres permitidos de la mac.
+3.  Validar que ningún espacio requerido quede en blanco.
+4.  Estetizar un poco más la vista.
+5.  Permitir al usuario seleccionar el modelo del dispositivo (precargados).
+6.  Permitir al usuario seleccionar la versión del firmware (precargados según
+el modelo seleccionado).
+7.  Limpiar los campos una vez insertado.
+
+Nota: no se si sería bueno, quizás notificar si el archivo que se intenta
+ingresar ya existe, incluso cargar la información que este ya contenga
+
+--------------------------------------------------------------------------------
+Controlador:
+
+1.  Cuando el sistema esté listo, cambiar nombres de aplicación, variables,
+rutas, comentarios... para formalizar el sistema.
+2.  Implementar lo necesario para satisfacer los requerimientos de la vista.
+
+--------------------------------------------------------------------------------
+Servidor:
+
+1.  Seleccionar la plantilla a leer según el modelo especificado por el usuario.
+2.  Almacenar los archivos creado en la ruta /tftpboot.
+3.  Hay un modelo de teléfono que no trabaja con archivos xml (el de carlos),
+buscar la manera de trabajar con este tipo de archivos.
+
+--------------------------------------------------------------------------------
+Otros:
+
+1.  Para no utilizar el usuario root para este sistema, quizás, crear un usuario
+específico, con los privilegios necesarios.
+2.  Para más seguridad, cambiar el logeo utilizando password por una clave ssh
+generada.
+3. Para mayor orden e incluso escalabilidad, colocar todas las plantillas en un
+único directorio.
+4. Para escalabilidad y mantenibilidad, configuraciones específicas que puedan
+requerir ser cambiadas a futuro (rutas, usuarios, servidor, plantillas...),
+colocar estas en un único archivo de configuración y leer dicho archivo, en vez
+de tener todo esto esparcido por el código.
+5. Agregar un módulo nuevo, directorio, definir sus requisitos y estructura.
+6. Incluso se podría crear también un modulo administrativo, donde se puedan
+manejar las configuraciones mencionadas en el punto 4.

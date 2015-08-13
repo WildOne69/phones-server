@@ -1,0 +1,215 @@
+//___________________________________________________________BASE DE DATOS MONGO
+var mongoClient = require('mongodb').MongoClient;
+var mongoUrl = ('mongodb://localhost:27017/test');
+var assert = require('assert');
+var bodyParser = require('body-parser');
+var fs = require('fs');
+
+var util = require('util');
+
+//_____________________________________________CREDENCIALES DE AUTENTICACION API
+var usr = 'jdcastrok@gmail.com';
+var pwd = 'thaethaeJ4Ei';
+var baseURL = '/v1';
+
+
+//_____________________NO SE BIEN QUE HACE CADA COSA, PARTE DE LA API DE AFFECTR
+
+var http = require('http'),
+  async = require('async'),
+  affectr = require('./affectr.js'),
+  _ = require("underscore");
+
+var endPointAdvertisement = baseURL + '/ad';
+var endPointChunkParse = baseURL + '/chunkparse';
+var endPointComparison = baseURL + '/comparison';
+var endPointDepParse = baseURL + '/depparse';
+var endPointEmotion = baseURL + '/emotion';
+var endPointGender = baseURL + '/gender';
+var endPointHumour = baseURL + '/humour';
+var endPointIntent = baseURL + '/intent';
+var endPointNamedEntities = baseURL + '/namedentity';
+var endPointPosTag = baseURL + '/postag';
+var endPointRisk = baseURL + '/risk';
+var endPointSentiment = baseURL + '/sentiment';
+var endPointSpeculation = baseURL + '/speculation';
+
+var reqOpts = {
+  headers: {
+    'Accept': 'application/json',
+    'Authorization': 'Basic ' + new Buffer(usr + ':' + pwd).toString('base64'),
+    'Content-Type': 'application/json'
+  },
+  hostname: 'api.theysay.io',
+  method: 'POST',
+  port: 80
+};
+
+function analyse(reqOpts, reqBody, callback) {
+  var buffer = '';
+
+  var req = http.request(reqOpts, function(res) {
+    res.setEncoding('utf8');
+
+    res.on('data', function (d) { buffer += d; });
+
+    res.on('end', function() {
+      var analysis = JSON.parse(buffer);
+
+      if (_.isUndefined(analysis.errors)) callback(analysis);
+      else console.log(analysis.errors);
+    });
+  });
+
+  req.on('error', function(e) { console.log('Dodgy request: ' + e.message); });
+
+  req.write(reqBody);
+
+  req.end();
+}
+
+
+//___________________________________INVOCA A LA API DE ANALISIS DE SENTIMIENTOS
+
+function callSentimentDocument(text, callback) {
+  reqOpts.path = endPointSentiment;
+  var reqBody = JSON.stringify({ text: text });
+
+  analyse(reqOpts, reqBody, function(analysis) {
+    //retorna el resultado de manera asíncrona
+    callback(analysis);
+  });
+}
+
+
+//____ESTABLECE LA CONECCIÓN CON MONGO Y CONECTA CON EL ANALISIS DE SENTIMIENTOS
+function runAnalysis(callback){
+  mongoClient.connect(mongoUrl, function(err, db) {
+    assert.equal(null, err);
+
+    //ES NECESARIO VER DE DONDE SE OBTIENE ESTE PARAMETRO
+    var keyword = "COSTA RICA";
+
+    //obtiene de base de datos los tweets que contengan la palabra clave
+    //"COSTA RICA" como un arreglo y los procesa (la consulta se limita a 10
+    //para efectos de pruebas, ya que hay un límite de 500 requests diarios)
+    db.collection('tweets').find({ text: { $regex: new RegExp(keyword, "i") } }).limit(10).toArray(function(err, results) {
+      //conteo de palabras para cada sentimiento específico
+      var count = 0;
+      var positivos = 0;
+      var neutros = 0;
+      var negativos = 0;
+
+      //recorre el arreglo de resultados y para cada uno de estos, llama al
+      //análisis de sentimientos con su respectivo atributo "text"
+      for (i = 0; i < results.length; i++) {
+        callSentimentDocument(results[i].text, function(analysis) {
+
+          //recibe el resultado del análisis, dependiendo de este, suma al
+          //contador respectivo
+          if (analysis.sentiment.label == "POSITIVE") {
+            positivos++;
+          } else if (analysis.sentiment.label == "NEUTRAL") {
+            neutros++;
+          } else if (analysis.sentiment.label == "NEGATIVE") {
+            negativos++;
+          } else {
+            //indefinido o error
+          }
+          //incrementa el conteo de resultados procesados
+          count++;
+        });
+      }
+
+      //cada segundo pregunta si todas las transacciones han sido procesadas
+      var wait = function(callback) {
+        //si ya se realizaron todas inicia la llamada hacia atrás para 'retornar'
+        //los resultados
+        if (count == results.length) {
+          callback();
+        //si no, espera un segundo y se llama recursivamente para volver a
+        //preguntar
+        } else {
+          setTimeout(function(){
+            wait(callback);
+          },1000);
+        }
+      };
+
+      //una vez que se ha realizado una llamada asíncrona para cada resultado del
+      //arreglo de coincidencias, se espera a que todas las transacciones hayan
+      //sido procesadas antes de continuar
+      wait(function() {
+        /*************************************************************************
+        *************AQUÍ DEBE DECIDIRSE QUE HACER CON LOS RESULTADOS*************
+        *************************************************************************/
+
+        //cierra la conexión, de lo contrario la ejecución no termina
+        db.close();
+
+        callback({
+          pos: positivos,
+          neu: neutros,
+          neg: negativos
+        });
+      });
+    });
+  });
+}
+
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+
+var express = require('express');
+var app = express();
+
+//directorio donde se encuentran los controladores y las vistas
+app.use(express.static(__dirname + "/public"));
+app.use(bodyParser.json());
+
+//recibe un get request hecho desde el controlador
+app.get('/contactlist', function(req, res) {
+  //ejecuta el análisis, el cual retornará un json con un valor para cada
+  //sentimiento
+  runAnalysis(function(results) {
+    //asigna el resultado a la respuesta de la petición
+    res.json(results);
+  });
+});
+
+//recibe un get request hecho desde el controlador
+app.post('/savefile', function(req, res) {
+  /*fs.writeFile('test.txt', req.body.pos + req.body.neu + req.body.neg, function (err) {
+    if (err) throw err;
+    console.log('It\'s saved!');
+  });*/
+
+  connect = require('ssh2-connect');
+  fs = require('ssh2-fs');
+  connect({
+    host: '172.24.27.4',
+    port: 22,
+    username: 'root',
+    password: 'elastixsc2014'}, function(err, ssh){
+      //fs.mkdir(ssh, '/tmp/a_dir', (err, stdout, stderr){
+        //console.log(stdout);
+      //});
+      fs.writeFile(ssh, '/' + req.body.name + '.txt',  req.body.text, function (err) {
+        if (err) throw err;
+        console.log('Archivo creado con éxito');
+      });
+    });
+  });
+
+//ejecuta la aplicación sobre el puerto 3000
+app.listen(3000);
+
+//notifica sobre el puerto en el cual se está ejecutando la aplicación
+console.log("Server running on port 3000");
