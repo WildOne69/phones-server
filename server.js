@@ -39,18 +39,18 @@ app.post('/savefile', function(req, res) {
   //se conecta al servidor con los credenciales especificados a continuación
   connect({
     //dirección del servidor donde se ubican los archivos de configuración
-    host: '172.24.27.4',
+    host: 'here goes the server',
     //puerto al cual establecer la conección (22 es el puerto por defecto de ssh)
     port: 22,
     //usuario con el que se establece la conección al server (root porque tiene
     //los privilegios necesarios para crear, modificar y eliminar archivos en
     //cualquier ubucación, podría pensarse en crear un usuario nuevo con los
     //privilegios necesarios únicamente para este sistema)
-    username: 'root',
+    username: 'here goes the user',
     //de momento para conectar se está utilizando la contraseña de root, lo cual
     //es inseguro, debería generarse una clave ssh autorizada, pero para efectos
     //de facilidad y pruebas, aún no
-    password: 'elastixsc2014'}, function(err, ssh){
+    password: 'here goes the password'}, function(err, ssh){
       //el parámetro 'err' determina si la conección se realizó con éxito, de ser
       //así, el parámetro 'ssh' es equivalente a la conexión como tal
 
